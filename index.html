@@ -58,7 +58,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 .path{display:inline-block;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:0 5px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(0,0,0,.06)}
 .bar .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
-.bar .money{flex:1;line-height:1.2}.bar .money span{font-size:12px;color:var(--sub)}.bar .money b{display:block;font-size:20px;color:var(--green)}
+.bar .money{flex:1;line-height:1.2}.bar .money span{font-size:12px;color:var(--sub)}.bar .money b{display:block;font-size:19px;color:var(--green)}
 .bar button{white-space:nowrap}
 .hide{display:none!important}
 .toast{margin-top:8px;font-size:14px}
@@ -103,7 +103,9 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 
 <section class="card">
   <h2><span class="num">2</span>タイムラインを読み込む</h2>
-  <button class="main" id="pick">JSONファイルを選ぶ</button>
+  <a id="openSettings" class="hide" href="intent:#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end" style="display:block;text-align:center;border:1px solid var(--green);border-radius:12px;padding:11px;margin-bottom:10px;color:var(--green);font-weight:bold;text-decoration:none">① 位置情報の設定を開く（書き出し用）</a>
+  <p id="openHint" class="hint hide" style="margin:-4px 0 10px">開いたら <span class="path">位置情報サービス</span> → <span class="path">タイムライン</span> → <span class="path">タイムライン データをエクスポート</span>。保存したら戻ってきて②へ。</p>
+  <button class="main" id="pick">② JSONファイルを選ぶ</button>
   <input type="file" id="file" accept=".json,application/json,text/plain" class="hide">
   <p id="fileInfo" class="hint">スマホに保存した <b>タイムライン.json</b> を選んでください。ファイルを「共有」→このアプリ、でも読み込めます。<br>
   書き出し方は下の「タイムラインの書き出し方」を見てください。</p>
@@ -177,8 +179,9 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 
 <div class="bar hide" id="bar"><div class="in">
   <div class="money"><span>自家用車使用料</span><b id="barMoney">0円</b></div>
-  <button class="main" id="dl" style="width:auto">申請書を作る</button>
-  <button id="share" class="hide">送る</button>
+  <button class="main" id="pdf" style="width:auto;padding:12px 14px">PDF</button>
+  <button class="main" id="dl" style="width:auto;padding:12px 14px">Excel</button>
+  <button id="share" class="hide" style="padding:12px 10px">送る</button>
 </div></div>
 
 <script src="jszip.min.js"></script>

@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var VERSION = "202611261554";
+  var VERSION = "202611261616";
   var $ = function (id) { return document.getElementById(id); };
   var TL = null, RES = null, DAYS = null, CUR = null, LASTFILE = null, KOKYU = {};
   var MODE_JA = { inpassengervehicle: "車", invehicle: "車", driving: "車", inbus: "バス", insubway: "地下鉄",
@@ -78,6 +78,7 @@
   loadMonth();
 
   // ---- ファイル
+  if (/Android/i.test(navigator.userAgent)) { $("openSettings").classList.remove("hide"); $("openHint").classList.remove("hide"); }
   $("pick").addEventListener("click", function () { $("file").click(); });
   $("file").addEventListener("change", function () { if (this.files[0]) readFile(this.files[0]); this.value = ""; });
   function readFile(f) {
@@ -197,26 +198,30 @@
     $("flags").innerHTML = out.length ? '<h3 style="margin:0 0 4px;font-size:15px;color:var(--green)">印の付いた日（' + out.length + "日）</h3>" + out.join("") : "";
   }
 
-  // ---- Excel
+  // ---- Excel / PDF
   function b64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-  $("dl").addEventListener("click", function () {
-    var c = cfg(), btn = $("dl");
+  function makeFile(kind) {
+    var c = cfg(), btn = $(kind === "pdf" ? "pdf" : "dl"), label = btn.textContent;
     btn.disabled = true; btn.textContent = "作成中…";
-    KC.writeXlsx(JSZip, b64(TPL_B64), CUR.y, CUR.m, DAYS, c, CUR.odo).then(function (r) {
-      var name = "自家用車使用距離申請書_" + CUR.y + "年" + String(CUR.m).padStart(2, "0") + "月_" + c.shimei.replace(/[\s　]/g, "") + ".xlsx";
-      var type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    var job = kind === "pdf" ? KC.writePdf(CUR.y, CUR.m, DAYS, c, CUR.odo)
+                             : KC.writeXlsx(JSZip, b64(TPL_B64), CUR.y, CUR.m, DAYS, c, CUR.odo);
+    job.then(function (r) {
+      var name = "自家用車使用距離申請書_" + CUR.y + "年" + String(CUR.m).padStart(2, "0") + "月_" + c.shimei.replace(/[\s　]/g, "") + (kind === "pdf" ? ".pdf" : ".xlsx");
+      var type = kind === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       var blob = new Blob([r.bin], { type: type });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
       try { LASTFILE = new File([r.bin], name, { type: type }); } catch (e) { LASTFILE = null; }
-      if (LASTFILE && navigator.canShare && navigator.canShare({ files: [LASTFILE] })) $("share").classList.remove("hide");
+      if (LASTFILE && navigator.canShare && navigator.canShare({ files: [LASTFILE] })) { $("share").classList.remove("hide"); $("share").textContent = "送る（" + (kind === "pdf" ? "PDF" : "Excel") + "）"; }
       var nm = CUR.m === 12 ? (CUR.y + 1) + "-01" : CUR.y + "-" + String(CUR.m + 1).padStart(2, "0");
       var s = store.get(); s.next = s.next || {}; s.next[nm] = r.lastOdo; store.set(s);
-      btn.textContent = "✓ 保存しました";
-      setTimeout(function () { btn.textContent = "申請書を作る"; btn.disabled = false; }, 2500);
-    }).catch(function (e) { btn.textContent = "申請書を作る"; btn.disabled = false; $("calcMsg").innerHTML = '<span class="err">作成できませんでした：' + esc(e.message || e) + "</span>"; });
-  });
+      btn.textContent = "✓ 保存";
+      setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2500);
+    }).catch(function (e) { btn.textContent = label; btn.disabled = false; $("calcMsg").innerHTML = '<span class="err">作成できませんでした：' + esc(e.message || e) + "</span>"; });
+  }
+  $("dl").addEventListener("click", function () { makeFile("xlsx"); });
+  $("pdf").addEventListener("click", function () { makeFile("pdf"); });
   $("share").addEventListener("click", function () {
     if (!LASTFILE) return;
     navigator.share({ files: [LASTFILE], title: LASTFILE.name }).catch(function () {});

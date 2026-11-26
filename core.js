@@ -395,7 +395,128 @@
     });
   }
 
-  root.KC = { collect: collect, buildMonth: buildMonth, makeDays: makeDays, markOf: markOf, parseDays: parseDays,
+  // ---------------------------------------------------------------- PDF（申請書と同じ配置を画像に描いてPDFに包む）
+  // 座標は A4縦の pt（595×842）。Excel本体でPDFにした見本から採寸した。
+  var FONT = '"Yu Gothic","YuGothic","Hiragino Sans","Noto Sans JP","Noto Sans CJK JP","Meiryo",sans-serif';
+  function drawForm(canvas, y, m, days, cfg, startOdo) {
+    var K = 3, W = 595.28, H = 841.89;
+    canvas.width = Math.round(W * K); canvas.height = Math.round(H * K);
+    var g = canvas.getContext("2d");
+    g.setTransform(K, 0, 0, K, 0, 0);
+    g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#000"; g.strokeStyle = "#000"; g.textBaseline = "middle";
+    var rate = parseInt(cfg.rate, 10) || 20, commute = parseInt(cfg.commute, 10) || 0, last = daysIn(y, m);
+    function font(px, bold) { g.font = (bold ? "bold " : "") + px + "px " + FONT; }
+    function text(s, x, yy, px, align, bold, maxW) {
+      s = String(s); font(px, bold); g.textAlign = align || "left";
+      if (maxW) { var p = px; while (p > 4 && g.measureText(s).width > maxW) { p -= 0.25; font(p, bold); } }
+      g.fillText(s, x, yy);
+    }
+    function line(x1, y1, x2, y2, w, dash) {
+      g.lineWidth = w || 0.6; g.setLineDash(dash || []); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.setLineDash([]);
+    }
+    function box(x1, y1, x2, y2, w) { g.lineWidth = w || 0.6; g.strokeRect(x1, y1, x2 - x1, y2 - y1); }
+    var C = [34, 48.4, 101.5, 154.5, 195, 233.7, 288, 564];   // 列の境目
+    var T0 = 74, HD = 87, RH = 12.86, TE = HD + RH * 31;        // 表の上・見出し下・行の高さ・表の下
+
+    text("自家用車使用距離申請書", W / 2, 37, 10.5, "center", true);
+    text("所属　" + (cfg.shozoku || ""), 51, 65, 7.5);
+    text("氏名　　" + (cfg.shimei || ""), 186, 65, 7.5);
+    line(34, 71, 259, 71, 0.5);
+    text("期間", 422, 65, 7.5); text(y + "年", 459, 65, 7.5); text(m + "月分", 514, 65, 7.5);
+
+    // 見出し
+    var hd = ["日付", "出社時キロ数", "退社時キロ数", "走行距離", "×" + rate + "円", "金　額", "移動経路、内容"];
+    for (var i = 0; i < 7; i++) text(hd[i], (C[i] + C[i + 1]) / 2, (T0 + HD) / 2, i === 0 ? 5 : 7.5, "center", false, C[i + 1] - C[i] - 2);
+
+    // 明細
+    var od = startOdo, total = 0, byDay = {};
+    days.forEach(function (d) { byDay[d.d] = d; });
+    for (var dd = 1; dd <= 31; dd++) {
+      var top = HD + RH * (dd - 1), mid = top + RH / 2, day = byDay[dd];
+      var km = day ? Math.max(day.km - day.densha, 0) : 0, ok = day && day.work && km > 0;
+      if (dd <= last && !ok) { g.fillStyle = "#D9D9D9"; g.fillRect(C[0], top, C[7] - C[0], RH); g.fillStyle = "#000"; }
+      if (dd <= last) text(dd, (C[0] + C[1]) / 2, mid, 6.5, "center");
+      if (ok) {
+        text(od.toLocaleString("en-US") + "㎞", C[2] - 2, mid, 7.5, "right");
+        text((od + km).toLocaleString("en-US") + "㎞", C[3] - 2, mid, 7.5, "right");
+        text(km.toLocaleString("en-US") + "㎞", C[4] - 2, mid, 7.5, "right");
+        text("×" + rate + "円", (C[4] + C[5]) / 2, mid, 5, "center");
+        text((km * rate).toLocaleString("en-US") + "円", C[6] - 2, mid, 7.5, "right");
+        if (day.route) text(day.route, C[6] + 2, mid, 7.5, "left", false, C[7] - C[6] - 4);
+        od += km; total += km * rate;
+      }
+    }
+    // 罫線
+    box(C[0], T0, C[7], TE, 0.8);
+    line(C[0], HD, C[7], HD);
+    for (dd = 1; dd < 31; dd++) line(C[0], HD + RH * dd, C[7], HD + RH * dd, 0.4);
+    for (i = 1; i < 7; i++) line(C[i], T0, C[i], TE, 0.4);
+    line(C[0], TE, C[7], TE, 1.4);
+
+    // 合計・通勤手当・使用料
+    var R1 = TE + 1.5, R2 = R1 + 17, R3 = R2 + 1.5, R4 = R3 + 17;
+    box(C[0], R1, C[7], R2, 1.2); line(C[5], R1, C[5], R2, 0.6); line(C[6], R1, C[6], R2, 1.2); line(500, R1, 500, R2, 0.6);
+    text("合　計", C[5] - 10, (R1 + R2) / 2, 9, "right", true);
+    text(total.toLocaleString("en-US") + "円", C[6] - 2, (R1 + R2) / 2, 7.5, "right");
+    text("通勤手当", 488, (R1 + R2) / 2, 9, "right", true);
+    text((-commute).toLocaleString("en-US") + "円", C[7] - 2, (R1 + R2) / 2, 7.5, "right");
+    box(C[0], R3, C[6], R4, 1.2); line(C[5], R3, C[5], R4, 0.6);
+    var net = total - commute;
+    text("自家用車使用料", C[5] - 3, (R3 + R4) / 2, 9, "right", true);
+    text(net.toLocaleString("en-US") + "円", C[6] - 2, (R3 + R4) / 2, 7.5, "right");
+
+    // 受領書
+    text("※　この申請書提出時に現金で精算の場合は、以下に記入してください。", 42, 534, 5.5);
+    line(C[0], 540, C[7], 540, 0.7, [5, 2, 1.2, 2]);
+    g.fillStyle = "#E6E6E6"; g.fillRect(C[0], 541, C[7] - C[0], 17); g.fillStyle = "#000";
+    text("受　領　書", W / 2, 549.5, 9, "center", true);
+    text("受領日 " + y + "　年　" + m + "月　" + last + "日", 298, 565, 7.5);
+    line(288, 573, 564, 573, 0.6);
+    text("（株）いとあ　　　　様", 60, 579, 7.5);
+    line(49, 586, 195, 586, 0.6);
+    text(y + "年  " + m + "月分", 126, 602, 7.5);
+    text("自家用車使用料として", 198, 602, 7.5);
+    text(net.toLocaleString("en-US") + "円", 353, 602, 11, "center");
+    text("を受領いたしました。", 422, 602, 7.5);
+    text("住所", 235, 628, 7.5); text(cfg.jusho || "", 290, 628, 7.5, "left", false, 270);
+    text("氏名", 235, 648, 7.5); text(cfg.shimei || "", 290, 648, 7.5);
+    return { total: total, net: net, lastOdo: od };
+  }
+
+  // JPEG 1枚を A4 1ページの PDF にする
+  function makePdf(jpeg, pxW, pxH) {
+    var enc = function (s) { var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; };
+    var parts = [], off = [], len = 0;
+    function add(u) { parts.push(u); len += u.length; }
+    function obj(n, head, bin, tail) { off[n] = len; add(enc(n + " 0 obj\n" + head)); if (bin) add(bin); add(enc((tail || "") + "\nendobj\n")); }
+    add(enc("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"));
+    var content = "q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+    obj(4, "<< /Type /XObject /Subtype /Image /Width " + pxW + " /Height " + pxH + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpeg.length + " >>\nstream\n", jpeg, "\nendstream");
+    obj(5, "<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream");
+    var x = len, s = "xref\n0 6\n0000000000 65535 f \n";
+    for (var i = 1; i <= 5; i++) s += String(off[i]).padStart(10, "0") + " 00000 n \n";
+    add(enc(s + "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + x + "\n%%EOF\n"));
+    var out = new Uint8Array(len), p = 0;
+    parts.forEach(function (u) { out.set(u, p); p += u.length; });
+    return out;
+  }
+
+  function writePdf(y, m, days, cfg, startOdo) {
+    var cv = document.createElement("canvas");
+    var r = drawForm(cv, y, m, days, cfg, startOdo);
+    return new Promise(function (ok, ng) {
+      cv.toBlob(function (b) {
+        if (!b) { ng(new Error("画像を作れませんでした")); return; }
+        b.arrayBuffer().then(function (ab) { r.bin = makePdf(new Uint8Array(ab), cv.width, cv.height); ok(r); }, ng);
+      }, "image/jpeg", 0.9);
+    });
+  }
+
+  root.KC = { writePdf: writePdf, drawForm: drawForm, makePdf: makePdf, collect: collect, buildMonth: buildMonth, makeDays: makeDays, markOf: markOf, parseDays: parseDays,
               writeXlsx: writeXlsx, daysIn: daysIn, hav: hav, GAP_MIN_KM: GAP_MIN_KM, KAKUNIN_KM: KAKUNIN_KM };
   if (typeof module !== "undefined") module.exports = root.KC;
 })(typeof window !== "undefined" ? window : globalThis);
