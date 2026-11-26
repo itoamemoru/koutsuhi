@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var VERSION = "202611261642";
+  var VERSION = "202611261646";
   var $ = function (id) { return document.getElementById(id); };
   var TL = null, RES = null, DAYS = null, CUR = null, LASTFILE = null, KOKYU = {};
   var MODE_JA = { inpassengervehicle: "車", invehicle: "車", driving: "車", inbus: "バス", insubway: "地下鉄",
@@ -134,7 +134,7 @@
     CUR = { y: y, m: m, odo: odo };
     var s = store.get(); s.odo = s.odo || {}; s.odo[ym] = odo; store.set(s);
     msg.innerHTML = warn + (RES.info.home ? "" : '<span class="err">自宅の場所が見つかりませんでした。帰宅の判定は行いません。</span>');
-    $("result").classList.remove("hide"); $("bar").classList.remove("hide"); $("share").classList.add("hide"); LASTFILE = null;
+    $("result").classList.remove("hide"); $("bar").classList.remove("hide"); 
     render();
     $("result").scrollIntoView({ behavior: "smooth" });
   });
@@ -171,8 +171,7 @@
     else if (t.classList.contains("dn")) { var w = toInt(t.value); d.densha = w == null ? 0 : Math.max(w, 0); }
     else if (t.classList.contains("fr")) { var f = toInt(t.value); d.fare = f == null ? 0 : Math.max(f, 0); if (d.fare > 0) d.work = true; }
     else if (t.classList.contains("route")) { d.route = t.value; return; }
-    LASTFILE = null; $("share").classList.add("hide");
-    render();
+        render();
   });
 
   function gmap(points) { return "https://www.google.com/maps/dir/" + points.map(ll).join("/"); }
@@ -202,32 +201,35 @@
 
   // ---- Excel / PDF
   function b64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-  function makeFile(kind) {
-    var c = cfg(), btn = $(kind === "pdf" ? "pdf" : "dl"), label = btn.textContent;
+  // 申請書ファイルを作る。send=true なら共有（LINE WORKS など）、false なら端末に保存
+  function makeFile(kind, send) {
+    var c = cfg(), btn = $((kind === "pdf" ? "pdf" : "dl") + (send ? "Send" : "")), label = btn.textContent;
     btn.disabled = true; btn.textContent = "作成中…";
     var job = kind === "pdf" ? KC.writePdf(CUR.y, CUR.m, DAYS, c, CUR.odo)
                              : KC.writeXlsx(JSZip, b64(TPL_B64), CUR.y, CUR.m, DAYS, c, CUR.odo);
+    function done(t) { btn.textContent = t; setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2000); }
     job.then(function (r) {
       var name = "自家用車使用距離申請書_" + CUR.y + "年" + String(CUR.m).padStart(2, "0") + "月_" + c.shimei.replace(/[\s　]/g, "") + (kind === "pdf" ? ".pdf" : ".xlsx");
       var type = kind === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      var blob = new Blob([r.bin], { type: type });
-      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
-      try { LASTFILE = new File([r.bin], name, { type: type }); } catch (e) { LASTFILE = null; }
-      if (LASTFILE && navigator.canShare && navigator.canShare({ files: [LASTFILE] })) { $("share").classList.remove("hide"); $("share").textContent = "送る（" + (kind === "pdf" ? "PDF" : "Excel") + "）"; }
       var nm = CUR.m === 12 ? (CUR.y + 1) + "-01" : CUR.y + "-" + String(CUR.m + 1).padStart(2, "0");
       var s = store.get(); s.next = s.next || {}; s.next[nm] = r.lastOdo; store.set(s);
-      btn.textContent = "✓ 保存";
-      setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2500);
+      var file = null;
+      try { file = new File([r.bin], name, { type: type }); } catch (e) { file = null; }
+      if (send && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: name }).then(function () { done("✓ 送りました"); }, function () { done(label); });
+        return;
+      }
+      var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.bin], { type: type })); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+      if (send) $("calcMsg").innerHTML = '<span class="err">この端末では「送る」が使えないため、保存しました。保存したファイルを添付して送ってください。</span>';
+      done("✓ 保存");
     }).catch(function (e) { btn.textContent = label; btn.disabled = false; $("calcMsg").innerHTML = '<span class="err">作成できませんでした：' + esc(e.message || e) + "</span>"; });
   }
-  $("dl").addEventListener("click", function () { makeFile("xlsx"); });
-  $("pdf").addEventListener("click", function () { makeFile("pdf"); });
-  $("share").addEventListener("click", function () {
-    if (!LASTFILE) return;
-    navigator.share({ files: [LASTFILE], title: LASTFILE.name }).catch(function () {});
-  });
+  $("pdf").addEventListener("click", function () { makeFile("pdf", false); });
+  $("pdfSend").addEventListener("click", function () { makeFile("pdf", true); });
+  $("dl").addEventListener("click", function () { makeFile("xlsx", false); });
+  $("dlSend").addEventListener("click", function () { makeFile("xlsx", true); });
 
   $("forget").addEventListener("click", function () {
     store.clear(); PROFILE.forEach(function (k) { $(k).value = k === "rate" ? "20" : ""; });
