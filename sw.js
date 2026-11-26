@@ -1,5 +1,5 @@
 // 交通費申請アプリ：オフラインで動かすための仕組み＋「共有」でJSONを受け取る
-var CACHE = "koutsuhi-202611261647";
+var CACHE = "koutsuhi-202611261656";
 var FILES = ["./", "index.html", "app.js", "core.js", "data.js", "jszip.min.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", function (e) {

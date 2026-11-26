@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var VERSION = "202611261647";
+  var VERSION = "202611261656";
   var $ = function (id) { return document.getElementById(id); };
   var TL = null, RES = null, DAYS = null, CUR = null, LASTFILE = null, KOKYU = {};
   var MODE_JA = { inpassengervehicle: "車", invehicle: "車", driving: "車", inbus: "バス", insubway: "地下鉄",
@@ -220,7 +220,14 @@
       var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.bin], { type: type })); a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
-      if (send) $("calcMsg").innerHTML = '<span class="err">この端末では「送る」が使えないため、保存しました。保存したファイルを添付して送ってください。</span>';
+      if (send) {
+        var m = $("barMsg");
+        m.innerHTML = kind === "pdf"
+          ? "この端末では「送る」が使えないため、<b>保存</b>しました。LINE WORKSなどで保存したファイルを添付してください。"
+          : "<b>Excelはスマホの決まりで直接送れないため、保存しました。</b><br>LINE WORKSのトークで <b>＋（添付）→ ファイル → ダウンロード</b> から「" + esc(name) + "」を選んで送ってください。PDFなら「送る」でそのまま送れます。";
+        m.classList.remove("hide");
+        clearTimeout(m._t); m._t = setTimeout(function () { m.classList.add("hide"); }, 15000);
+      }
       done("✓ 保存");
     }).catch(function (e) { btn.textContent = label; btn.disabled = false; $("calcMsg").innerHTML = '<span class="err">作成できませんでした：' + esc(e.message || e) + "</span>"; });
   }

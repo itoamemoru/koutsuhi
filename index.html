@@ -60,6 +60,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 .bar .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .bar .money{flex:1;line-height:1.2}.bar .money span{font-size:12px;color:var(--sub)}.bar .money b{display:block;font-size:19px;color:var(--green)}
 .bar button{white-space:nowrap}
+.barmsg{max-width:760px;margin:0 auto 8px;background:#FFF8EC;border:1px solid #EBD3A8;border-radius:10px;padding:8px 12px;font-size:13px;line-height:1.5}
 .bar .btns{display:flex;flex-direction:column;gap:6px}
 .bar .grp{display:flex;align-items:center;gap:6px}
 .bar .grp span{width:40px;font-size:12px;color:var(--sub);text-align:right}
@@ -182,7 +183,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 <p class="hint" style="text-align:center">株式会社いとあ　／　計算はすべてこの端末の中で行います　<span id="ver"></span></p>
 </div>
 
-<div class="bar hide" id="bar"><div class="in">
+<div class="bar hide" id="bar"><div id="barMsg" class="barmsg hide"></div><div class="in">
   <div class="money"><span>自家用車使用料</span><b id="barMoney">0円</b></div>
   <div class="btns">
     <div class="grp"><span>PDF</span><button class="main" id="pdf">保存</button><button class="main" id="pdfSend">送る</button></div>
