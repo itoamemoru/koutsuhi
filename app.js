@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var VERSION = "202611261616";
+  var VERSION = "202611261642";
   var $ = function (id) { return document.getElementById(id); };
   var TL = null, RES = null, DAYS = null, CUR = null, LASTFILE = null, KOKYU = {};
   var MODE_JA = { inpassengervehicle: "車", invehicle: "車", driving: "車", inbus: "バス", insubway: "地下鉄",
@@ -140,10 +140,10 @@
   });
 
   function render() {
-    var c = cfg(), rate = toInt(c.rate) || 20, commute = toInt(c.commute) || 0, od = CUR.odo, tot = 0, nday = 0, h = "";
+    var c = cfg(), rate = toInt(c.rate) || 20, commute = toInt(c.commute) || 0, od = CUR.odo, tot = 0, fares = 0, nday = 0, h = "";
     DAYS.forEach(function (d, i) {
-      var net = Math.max(d.km - d.densha, 0), ok = d.work && net > 0, mk = KC.markOf(d);
-      if (ok) { od += net; tot += net; nday++; }
+      var net = KC.carKm(d), ok = KC.isOk(d), mk = KC.markOf(d);
+      if (ok) { od += net; tot += net; fares += KC.fareOf(d); nday++; }
       var why = !ok ? (d.kokyu ? "公休" : (d.km > 0 && !d.work ? "外した日" : (d.km > 0 ? "電車のみ" : "車の記録なし"))) : "";
       h += '<div class="day' + (ok ? "" : " rest") + '" data-i="' + i + '">' +
         '<div class="d">' + d.d + "<small>" + d.wd + "</small></div>" +
@@ -151,14 +151,15 @@
         '<div class="r"><input type="text" inputmode="numeric" class="k" value="' + d.km + '"><span>㎞</span></div>' +
         '<div class="sub"><label class="sw"><input type="checkbox" class="w"' + (d.work ? " checked" : "") + ">出勤</label>" +
         '<label>電車 <input type="text" inputmode="numeric" class="dn" value="' + (d.densha || "") + '" placeholder="0">㎞</label>' +
+        '<label>運賃 <input type="text" inputmode="numeric" class="fr" value="' + (d.fare || "") + '" placeholder="0">円</label>' +
         (ok ? "<span>→ " + od.toLocaleString() + "㎞</span>" : "<span>" + why + "</span>") +
         (mk[0] ? '<span class="mk ' + mk[1] + '">' + mk[0] + "</span>" : "") + "</div></div>";
     });
     $("days").innerHTML = h;
-    var g = tot * rate;
-    $("sum").innerHTML = "<div><span>出勤</span><b>" + nday + "日</b></div><div><span>走行</span><b>" + tot.toLocaleString() + "㎞</b></div>" +
-      "<div><span>金額</span><b>" + yen(g) + "</b></div><div><span>通勤手当</span><b>−" + yen(commute) + "</b></div>" +
-      "<div><span>開始</span><b>" + CUR.odo.toLocaleString() + "</b></div><div><span>最終</span><b>" + od.toLocaleString() + "</b></div>";
+    var g = tot * rate + fares;
+    $("sum").innerHTML = "<div><span>出勤</span><b>" + nday + "日</b></div><div><span>車の走行</span><b>" + tot.toLocaleString() + "㎞</b></div>" +
+      "<div><span>車の金額</span><b>" + yen(tot * rate) + "</b></div><div><span>電車の運賃</span><b>" + yen(fares) + "</b></div>" +
+      "<div><span>通勤手当</span><b>−" + yen(commute) + "</b></div><div><span>メーター</span><b>" + od.toLocaleString() + "</b></div>";
     $("barMoney").textContent = yen(g - commute);
     renderFlags();
   }
@@ -168,6 +169,7 @@
     if (t.classList.contains("w")) d.work = t.checked;
     else if (t.classList.contains("k")) { var v = toInt(t.value); d.km = v == null ? 0 : Math.max(v, 0); }
     else if (t.classList.contains("dn")) { var w = toInt(t.value); d.densha = w == null ? 0 : Math.max(w, 0); }
+    else if (t.classList.contains("fr")) { var f = toInt(t.value); d.fare = f == null ? 0 : Math.max(f, 0); if (d.fare > 0) d.work = true; }
     else if (t.classList.contains("route")) { d.route = t.value; return; }
     LASTFILE = null; $("share").classList.add("hide");
     render();
@@ -187,13 +189,13 @@
         out.push('<div class="flag"><b>' + t + " 距離不足の疑い</b>：いま " + d.km + "㎞ → 実際は <b>" + (lo === hi ? lo : lo + "〜" + hi) + "㎞</b> の可能性。" +
           (rec.nuke || []).map(function (g) { return hhmm(g.t0) + "〜" + hhmm(g.t1) + "の記録なし"; }).join("、") + "。" + link + "</div>");
       } else if (mk === "元データ要確認") {
-        out.push('<div class="flag"><b>' + t + " 元データ要確認</b>：手段がはっきりしない区間があります（車として数えています）。バス・電車なら「電車」に入れてください。<br>" +
+        out.push('<div class="flag"><b>' + t + " 元データ要確認</b>：手段がはっきりしない区間があります（車として数えています）。バス・電車なら「電車」の㎞と運賃を入れてください。<br>" +
           rec.aimai.map(function (a) {
             var mj = MODE_JA[String(a.mode || "").toLowerCase().replace(/[^a-z]/g, "")] || a.mode;
             return hhmm(a.start) + (a.end ? "〜" + hhmm(a.end) : "") + " " + a.km.toFixed(1) + "㎞（判定：" + esc(mj) + (a.prob != null ? "・" + Math.round(a.prob * 100) + "%" : "") + "）" +
               (a.s_ll && a.e_ll ? ' <a href="' + gmap([a.s_ll, a.e_ll]) + '" target="_blank" rel="noopener">地図</a>' : "");
           }).join("<br>") + "</div>");
-      } else if (mk === "要確認") out.push('<div class="flag o"><b>' + t + " 要確認</b>：" + d.km + "㎞。社用車・乗り合わせなら「出勤」を外してください。" + link + "</div>");
+      } else if (mk === "要確認") out.push('<div class="flag o"><b>' + t + " 要確認</b>：" + d.km + "㎞走っています。距離が正しいか確認してください。" + link + "</div>");
     });
     $("flags").innerHTML = out.length ? '<h3 style="margin:0 0 4px;font-size:15px;color:var(--green)">印の付いた日（' + out.length + "日）</h3>" + out.join("") : "";
   }

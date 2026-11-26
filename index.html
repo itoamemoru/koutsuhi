@@ -45,7 +45,7 @@ button.link{border:none;background:none;padding:4px 0;color:var(--blue);font-wei
 .day .r{display:flex;align-items:center;gap:6px}
 .day .k{width:68px;text-align:right;padding:6px 8px;margin:0}
 .day .sub{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px;color:var(--sub)}
-.day .dn{width:64px;text-align:right;padding:4px 6px;font-size:13px;margin:0;color:var(--blue)}
+.day .dn,.day .fr{width:64px;text-align:right;padding:4px 6px;font-size:13px;margin:0;color:var(--blue)}
 .sw{display:flex;align-items:center;gap:4px;font-size:13px}
 .sw input{width:22px;height:22px;accent-color:var(--green2)}
 .mk{font-weight:bold}.mk.red{color:var(--red)}.mk.orange{color:var(--orange)}.mk.blue{color:var(--blue)}
@@ -81,7 +81,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
     <li><b>位置情報はどこにも送りません。</b>計算はこのスマホ（パソコン）の中だけで行い、閉じれば消えます。</li>
     <li><b>「全部おまかせ」ではなく、入力を手伝うサポートツールです。</b>できあがった内容は<b>必ず自分の目で確認し、間違っていたら修正</b>してから提出してください。</li>
     <li>使うのは、<b>本人が自分の位置情報を使うことに同意した場合だけ</b>です。会社が社員のタイムラインを集めることはありません。</li>
-    <li><b>社用車・乗り合わせ・私用の移動は、自動では区別できません。</b>外す日・直す距離は本人が入れてください。</li>
+    <li><b>私用の移動は、自動では区別できません。</b>外す日・直す距離は本人が入れてください。</li>
   </ul>
 </section>
 
@@ -128,7 +128,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
 <section class="card hide" id="result">
   <h2><span class="num">4</span>確認して直す</h2>
   <div class="sum" id="sum"></div>
-  <p class="hint" style="margin-top:0">社用車・乗り合わせ・私用の日は<b>「出勤」を外す</b>。距離はそのまま書き換えられます。電車・バスの分は「電車」に入れると差し引きます。</p>
+  <p class="hint" style="margin-top:0">申請しない日は<b>「出勤」を外す</b>。距離はそのまま書き換えられます。電車・バスを使った日は「電車」に<b>乗った㎞</b>（車から差し引く）と<b>運賃</b>（金額に足す）を入れます。車と電車の両方を使った日も、そのまま両方入れてください。</p>
   <div id="days"></div>
   <div id="flags" style="margin-top:14px"></div>
 </section>
@@ -164,7 +164,7 @@ summary{cursor:pointer;font-weight:bold;color:var(--green)}
       <li><span class="mk red">帰りの記録なし</span>：最後が自宅から離れた所で終わっている</li>
       <li><span class="mk red">距離不足の疑い</span>：途中の記録が抜けている</li>
       <li><span class="mk red">元データ要確認</span>：車かバス・電車かはっきりしない区間がある（車として数えています）</li>
-      <li><span class="mk orange">要確認</span>：100㎞以上。社用車・乗り合わせでないか</li>
+      <li><span class="mk orange">要確認</span>：100㎞以上。距離が正しいか確認</li>
     </ul>
     <p class="hint">印は確認用で、申請書には入りません。</p>
   </details>

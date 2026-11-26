@@ -277,17 +277,25 @@
       var rec = res.data[d] || null;
       var kmAll = rec ? pyRound(rec.km || 0) : 0;
       out.push({ d: d, wd: WD[(new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7],
-                 rec: rec, kmAuto: kmAll, km: kmAll, densha: 0,
+                 rec: rec, kmAuto: kmAll, km: kmAll, densha: 0, fare: 0,
                  work: !!(rec && !yasumi[d] && (rec.km || 0) >= 1),
                  kokyu: !!yasumi[d], route: rec ? rec.route : "" });
     }
     return out;
   }
 
+  // 1日の数え方：車の㎞＝走行㎞−電車㎞、金額＝車の㎞×単価＋運賃
+  function carKm(day) { return Math.max((day.km || 0) - (day.densha || 0), 0); }
+  function fareOf(day) { return Math.max(day.fare || 0, 0); }
+  function isOk(day) { return !!(day && day.work && (carKm(day) > 0 || fareOf(day) > 0)); }
+  function routeOut(day) {
+    var r = day.route || "", f = fareOf(day);
+    return f > 0 ? (r ? r + "　" : "") + "（電車 " + f.toLocaleString("en-US") + "円）" : r;
+  }
   function markOf(day) {
-    var km = Math.max(day.km - day.densha, 0), rec = day.rec;
-    if (!day.work || km <= 0) return day.densha > 0 ? ["電車のみ", "blue"] : ["", ""];
-    if (day.densha > 0) return ["電車 " + day.densha + "㎞", "blue"];
+    var km = carKm(day), rec = day.rec, f = fareOf(day);
+    if (!isOk(day)) return (day.densha > 0 || f > 0) ? ["電車のみ", "blue"] : ["", ""];
+    if (day.densha > 0 || f > 0) return ["電車" + (day.densha > 0 ? " " + day.densha + "㎞" : "") + (f > 0 ? " " + f.toLocaleString("en-US") + "円" : ""), "blue"];
     if (rec && rec.kitaku_nashi && km === day.kmAuto) return ["帰りの記録なし", "red"];
     if (rec && (rec.nuke_km || 0) >= GAP_MIN_KM && km === day.kmAuto) return ["距離不足の疑い", "red"];
     if (rec && rec.aimai.length && km === day.kmAuto) return ["元データ要確認", "red"];
@@ -368,7 +376,7 @@
           COLS.forEach(function (c) { sh = setCell(sh, c + r, null); });
         }
         days.forEach(function (day) {
-          var r = 5 + day.d, km = Math.max(day.km - day.densha, 0), ok = day.work && km > 0;
+          var r = 5 + day.d, km = carKm(day), ok = isOk(day), fare = fareOf(day);
           var sm = ok ? WHITE : GRAY;
           ["A"].concat(COLS).forEach(function (c) { sh = setCell(sh, c + r, c === "A" ? day.d : null, sm); });
           if (!ok) return;
@@ -377,7 +385,8 @@
           sh = setCell(sh, "D" + r, km);
           sh = setCell(sh, "E" + r, "×" + rate + "円");
           sh = setCell(sh, "F" + r, { f: "((D" + r + "*" + rate + "))+N" + r });
-          sh = setCell(sh, "G" + r, day.route || null);
+          sh = setCell(sh, "G" + r, routeOut(day) || null);
+          if (fare > 0) sh = setCell(sh, "N" + r, fare);      // 様式の「手で足す欄」（F＝D×単価＋N）
           od += km; total += km; nday++; prev = r;
         });
 
@@ -434,7 +443,7 @@
     days.forEach(function (d) { byDay[d.d] = d; });
     for (var dd = 1; dd <= 31; dd++) {
       var top = HD + RH * (dd - 1), mid = top + RH / 2, day = byDay[dd];
-      var km = day ? Math.max(day.km - day.densha, 0) : 0, ok = day && day.work && km > 0;
+      var km = day ? carKm(day) : 0, ok = isOk(day), fare = day ? fareOf(day) : 0;
       if (dd <= last && !ok) { g.fillStyle = "#D9D9D9"; g.fillRect(C[0], top, C[7] - C[0], RH); g.fillStyle = "#000"; }
       if (dd <= last) text(dd, (C[0] + C[1]) / 2, mid, 6.5, "center");
       if (ok) {
@@ -442,9 +451,9 @@
         text((od + km).toLocaleString("en-US") + "㎞", C[3] - 2, mid, 7.5, "right");
         text(km.toLocaleString("en-US") + "㎞", C[4] - 2, mid, 7.5, "right");
         text("×" + rate + "円", (C[4] + C[5]) / 2, mid, 5, "center");
-        text((km * rate).toLocaleString("en-US") + "円", C[6] - 2, mid, 7.5, "right");
-        if (day.route) text(day.route, C[6] + 2, mid, 7.5, "left", false, C[7] - C[6] - 4);
-        od += km; total += km * rate;
+        text((km * rate + fare).toLocaleString("en-US") + "円", C[6] - 2, mid, 7.5, "right");
+        var ro = routeOut(day); if (ro) text(ro, C[6] + 2, mid, 7.5, "left", false, C[7] - C[6] - 4);
+        od += km; total += km * rate + fare;
       }
     }
     // 罫線
@@ -516,7 +525,7 @@
     });
   }
 
-  root.KC = { writePdf: writePdf, drawForm: drawForm, makePdf: makePdf, collect: collect, buildMonth: buildMonth, makeDays: makeDays, markOf: markOf, parseDays: parseDays,
+  root.KC = { carKm: carKm, fareOf: fareOf, isOk: isOk, routeOut: routeOut, writePdf: writePdf, drawForm: drawForm, makePdf: makePdf, collect: collect, buildMonth: buildMonth, makeDays: makeDays, markOf: markOf, parseDays: parseDays,
               writeXlsx: writeXlsx, daysIn: daysIn, hav: hav, GAP_MIN_KM: GAP_MIN_KM, KAKUNIN_KM: KAKUNIN_KM };
   if (typeof module !== "undefined") module.exports = root.KC;
 })(typeof window !== "undefined" ? window : globalThis);
