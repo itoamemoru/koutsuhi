@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#35402F">
+<title>交通費申請</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#F2EEEA;--card:#fff;--ink:#2B2B28;--sub:#6B655E;--line:#DDD5CC;--green:#35402F;--green2:#4A5D4E;--soft:#F8F5F1;--red:#C0392B;--orange:#B9770E;--blue:#1F618D;--gray:#E2DEDA}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px;line-height:1.6}
+.top{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px calc(12px);padding-top:calc(12px + env(safe-area-inset-top))}
+.top h1{margin:0;font-size:18px;letter-spacing:.04em}
+.wrap{max-width:760px;margin:0 auto;padding:12px 12px 120px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.card h2{margin:0 0 10px;font-size:17px;color:var(--green);display:flex;align-items:center;gap:8px}
+.num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--green2);color:#fff;align-items:center;justify-content:center;font-size:14px;flex:none}
+.note{background:#FFF8EC;border-color:#EBD3A8}
+.note h2{color:#7A4E12}
+.note ul{margin:0;padding-left:1.2em;font-size:14px}.note li{margin:4px 0}
+label.f{display:block;font-size:13px;color:var(--sub);margin:8px 0}
+input[type=text],input[type=month]{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1px solid #C9BFB3;border-radius:10px;background:#fff;color:var(--ink);margin-top:3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.hint{font-size:13px;color:var(--sub);margin:6px 0 0}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--green);padding:12px 16px;background:#fff;color:var(--green);font-weight:bold}
+button.main{background:var(--green);color:#fff;width:100%;font-size:17px}
+button.main:disabled{background:#9AA396;border-color:#9AA396}
+button.link{border:none;background:none;padding:4px 0;color:var(--blue);font-weight:normal;text-decoration:underline}
+.prof{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px}
+.ok{color:#2E6B3A;font-weight:bold}.err{color:var(--red);font-weight:bold}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:6px}
+.cal .h{text-align:center;font-size:12px;color:var(--sub)}
+.cal .h.sun,.cal .sun{color:#B03A2E}.cal .h.sat,.cal .sat{color:#2C5F8A}
+.cal button{padding:9px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:normal;color:var(--ink)}
+.cal button.on{background:#8C6E54;border-color:#8C6E54;color:#fff;font-weight:bold}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.sum div{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.sum span{display:block;font-size:11px;color:var(--sub)}.sum b{font-size:16px}
+.day{display:grid;grid-template-columns:44px 1fr auto;gap:4px 10px;align-items:center;border-bottom:1px solid #ECE6DF;padding:9px 4px}
+.day.rest{background:var(--gray);border-radius:8px;opacity:.85}
+.day .d{text-align:center;font-weight:bold;line-height:1.2}.day .d small{display:block;font-weight:normal;font-size:12px}
+.day .route{padding:6px 8px;font-size:14px;margin:0}
+.day .r{display:flex;align-items:center;gap:6px}
+.day .k{width:68px;text-align:right;padding:6px 8px;margin:0}
+.day .sub{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px;color:var(--sub)}
+.day .dn{width:64px;text-align:right;padding:4px 6px;font-size:13px;margin:0;color:var(--blue)}
+.sw{display:flex;align-items:center;gap:4px;font-size:13px}
+.sw input{width:22px;height:22px;accent-color:var(--green2)}
+.mk{font-weight:bold}.mk.red{color:var(--red)}.mk.orange{color:var(--orange)}.mk.blue{color:var(--blue)}
+.flag{border-left:4px solid var(--red);background:#FDF3F1;padding:8px 12px;margin:8px 0;border-radius:0 8px 8px 0;font-size:14px}
+.flag.o{border-color:var(--orange);background:#FDF7EC}
+.flag a{color:var(--blue)}
+details{border-top:1px solid var(--line);padding:10px 0}details:first-of-type{border-top:none}
+summary{cursor:pointer;font-weight:bold;color:var(--green)}
+.steps{margin:8px 0 0;padding-left:1.3em;font-size:14px}.steps li{margin:6px 0}
+.path{display:inline-block;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:0 5px}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(0,0,0,.06)}
+.bar .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.bar .money{flex:1;line-height:1.2}.bar .money span{font-size:12px;color:var(--sub)}.bar .money b{display:block;font-size:20px;color:var(--green)}
+.bar button{white-space:nowrap}
+.hide{display:none!important}
+.toast{margin-top:8px;font-size:14px}
+.install{background:#EAF0E6;border-color:#B9C8B1}
+</style>
+</head>
+<body>
+<div class="top"><h1>🚗 交通費申請 <span style="font-size:12px;font-weight:normal;opacity:.8">自家用車使用距離申請書</span></h1></div>
+<div class="wrap">
+
+<section class="card install hide" id="installCard">
+  <h2>📲 ホーム画面に置く</h2>
+  <p class="hint" style="margin-top:0">アプリとしてホーム画面に置くと、次からアイコンひとつで開けます。電波がなくても使えます。</p>
+  <button id="installBtn" style="margin-top:8px">ホーム画面に追加する</button>
+</section>
+
+<section class="card note">
+  <h2>⚠ はじめにお読みください</h2>
+  <ul>
+    <li><b>位置情報はどこにも送りません。</b>計算はこのスマホ（パソコン）の中だけで行い、閉じれば消えます。</li>
+    <li><b>「全部おまかせ」ではなく、入力を手伝うサポートツールです。</b>できあがった内容は<b>必ず自分の目で確認し、間違っていたら修正</b>してから提出してください。</li>
+    <li>使うのは、<b>本人が自分の位置情報を使うことに同意した場合だけ</b>です。会社が社員のタイムラインを集めることはありません。</li>
+    <li><b>社用車・乗り合わせ・私用の移動は、自動では区別できません。</b>外す日・直す距離は本人が入れてください。</li>
+  </ul>
+</section>
+
+<section class="card" id="profCard">
+  <h2><span class="num">1</span>申請者の情報</h2>
+  <div id="profView" class="prof hide"><span id="profText"></span><button class="link" id="profEdit">変更</button></div>
+  <div id="profForm">
+    <label class="f">所属<input type="text" id="shozoku" placeholder="例）フューネラル"></label>
+    <label class="f">氏名<input type="text" id="shimei" placeholder="例）村本　太郎"></label>
+    <label class="f">住所<input type="text" id="jusho" placeholder="例）恵庭市柏木町3丁目3－16"></label>
+    <div class="two">
+      <label class="f">通勤手当（円／月）<input type="text" inputmode="numeric" id="commute" placeholder="例）4200"></label>
+      <label class="f">単価（円／㎞）<input type="text" inputmode="numeric" id="rate" value="20"></label>
+    </div>
+    <button id="profSave" style="width:100%;margin-top:6px">この内容を覚える</button>
+    <p class="hint">次からは自動で入ります（このスマホの中だけに保存）。</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2><span class="num">2</span>タイムラインを読み込む</h2>
+  <button class="main" id="pick">JSONファイルを選ぶ</button>
+  <input type="file" id="file" accept=".json,application/json,text/plain" class="hide">
+  <p id="fileInfo" class="hint">スマホに保存した <b>タイムライン.json</b> を選んでください。ファイルを「共有」→このアプリ、でも読み込めます。<br>
+  書き出し方は下の「タイムラインの書き出し方」を見てください。</p>
+</section>
+
+<section class="card">
+  <h2><span class="num">3</span>月・出社時キロ数・公休</h2>
+  <div class="two">
+    <label class="f">対象の月<input type="month" id="ym"></label>
+    <label class="f">最初の出社時キロ数<input type="text" inputmode="numeric" id="odo" placeholder="メーターの数字"></label>
+  </div>
+  <p class="hint" style="margin-top:0">先月このアプリで作った方は、先月の最終キロ数が入ります。</p>
+  <label class="f" style="margin-bottom:0">公休（日にちを押して選ぶ）</label>
+  <div class="cal" id="cal"></div>
+  <p class="hint" id="kokyuText"></p>
+  <button class="main" id="calc" disabled style="margin-top:12px">表を作る</button>
+  <p id="calcMsg" class="hint"></p>
+</section>
+
+<section class="card hide" id="result">
+  <h2><span class="num">4</span>確認して直す</h2>
+  <div class="sum" id="sum"></div>
+  <p class="hint" style="margin-top:0">社用車・乗り合わせ・私用の日は<b>「出勤」を外す</b>。距離はそのまま書き換えられます。電車・バスの分は「電車」に入れると差し引きます。</p>
+  <div id="days"></div>
+  <div id="flags" style="margin-top:14px"></div>
+</section>
+
+<section class="card">
+  <h2>ℹ 使い方とコツ</h2>
+  <details>
+    <summary>タイムラインの書き出し方</summary>
+    <ol class="steps">
+      <li><span class="path">設定</span> → <span class="path">位置情報</span> → <span class="path">位置情報サービス</span> → <span class="path">タイムライン</span></li>
+      <li><span class="path">タイムライン データをエクスポート</span> → <span class="path">続行</span></li>
+      <li>保存先は <span class="path">ダウンロード</span> でOK（<span class="path">タイムライン.json</span> ができます）</li>
+      <li>このアプリの「JSONファイルを選ぶ」で、そのファイルを選びます</li>
+    </ol>
+    <p class="hint">※ 月が終わってから書き出してください。<br>※ 機種によってメニューの名前が少し違います。設定の検索で「タイムライン」と入れると早いです。<br>※ タイムラインはスマホの中にだけ保存されます。タイムラインの画面で「バックアップ」をオンにしておくと、機種変更でも消えません。</p>
+  </details>
+  <details>
+    <summary>GPSの精度を上げる方法</summary>
+    <p class="hint" style="margin-top:8px">スマホは電池節約のためGPSをあまり使わず、記録が抜けたり手段を取り違えたりします。次の設定でかなり良くなります。</p>
+    <ol class="steps">
+      <li><b>「Google 位置情報の精度」をオン</b>：<span class="path">設定</span> → <span class="path">位置情報</span> → <span class="path">位置情報サービス</span></li>
+      <li><b>Wi-Fiスキャン・Bluetoothスキャンをオン</b>：同じ画面</li>
+      <li><b>Googleマップに「常に許可」＋「正確な位置情報」</b>：<span class="path">設定</span> → <span class="path">アプリ</span> → <span class="path">マップ</span> → <span class="path">権限</span> → <span class="path">位置情報</span></li>
+      <li><b>Googleマップの電池の制限を外す</b>：<span class="path">アプリ</span> → <span class="path">マップ</span> → <span class="path">電池</span> → <span class="path">制限なし</span>。運転する日は<b>省電力モードをオフ</b>に</li>
+      <li><b>タイムラインがオンか確認</b>：<span class="path">位置情報サービス</span> → <span class="path">タイムライン</span></li>
+      <li><b>運転中はスマホをカバンの奥に入れない</b>。長距離はGoogleマップのナビを使うと記録が細かくなりやすい</li>
+      <li><b>月初と月末にメーターを写真で残す</b>（月の合計の答え合わせ）</li>
+    </ol>
+  </details>
+  <details>
+    <summary>印の意味</summary>
+    <ul class="steps">
+      <li><span class="mk red">帰りの記録なし</span>：最後が自宅から離れた所で終わっている</li>
+      <li><span class="mk red">距離不足の疑い</span>：途中の記録が抜けている</li>
+      <li><span class="mk red">元データ要確認</span>：車かバス・電車かはっきりしない区間がある（車として数えています）</li>
+      <li><span class="mk orange">要確認</span>：100㎞以上。社用車・乗り合わせでないか</li>
+    </ul>
+    <p class="hint">印は確認用で、申請書には入りません。</p>
+  </details>
+  <details>
+    <summary>このスマホの記憶を消す</summary>
+    <p class="hint">氏名・所属・住所・通勤手当・最後のキロ数を覚えています（位置情報は覚えません）。</p>
+    <button id="forget">記憶を消す</button> <span id="forgetMsg" class="hint"></span>
+  </details>
+</section>
+<p class="hint" style="text-align:center">株式会社いとあ　／　計算はすべてこの端末の中で行います　<span id="ver"></span></p>
+</div>
+
+<div class="bar hide" id="bar"><div class="in">
+  <div class="money"><span>自家用車使用料</span><b id="barMoney">0円</b></div>
+  <button class="main" id="dl" style="width:auto">申請書を作る</button>
+  <button id="share" class="hide">送る</button>
+</div></div>
+
+<script src="jszip.min.js"></script>
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
