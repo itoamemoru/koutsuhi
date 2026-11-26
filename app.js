@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var VERSION = "202611261646";
+  var VERSION = "202611261647";
   var $ = function (id) { return document.getElementById(id); };
   var TL = null, RES = null, DAYS = null, CUR = null, LASTFILE = null, KOKYU = {};
   var MODE_JA = { inpassengervehicle: "車", invehicle: "車", driving: "車", inbus: "バス", insubway: "地下鉄",
@@ -150,8 +150,7 @@
         '<input type="text" class="route" value="' + esc(d.route) + '" placeholder="' + (ok ? "移動経路" : why) + '">' +
         '<div class="r"><input type="text" inputmode="numeric" class="k" value="' + d.km + '"><span>㎞</span></div>' +
         '<div class="sub"><label class="sw"><input type="checkbox" class="w"' + (d.work ? " checked" : "") + ">出勤</label>" +
-        '<label>電車 <input type="text" inputmode="numeric" class="dn" value="' + (d.densha || "") + '" placeholder="0">㎞</label>' +
-        '<label>運賃 <input type="text" inputmode="numeric" class="fr" value="' + (d.fare || "") + '" placeholder="0">円</label>' +
+        '<label>電車の運賃 <input type="text" inputmode="numeric" class="fr" value="' + (d.fare || "") + '" placeholder="0">円</label>' +
         (ok ? "<span>→ " + od.toLocaleString() + "㎞</span>" : "<span>" + why + "</span>") +
         (mk[0] ? '<span class="mk ' + mk[1] + '">' + mk[0] + "</span>" : "") + "</div></div>";
     });
@@ -168,7 +167,6 @@
     var d = DAYS[+row.dataset.i], t = e.target;
     if (t.classList.contains("w")) d.work = t.checked;
     else if (t.classList.contains("k")) { var v = toInt(t.value); d.km = v == null ? 0 : Math.max(v, 0); }
-    else if (t.classList.contains("dn")) { var w = toInt(t.value); d.densha = w == null ? 0 : Math.max(w, 0); }
     else if (t.classList.contains("fr")) { var f = toInt(t.value); d.fare = f == null ? 0 : Math.max(f, 0); if (d.fare > 0) d.work = true; }
     else if (t.classList.contains("route")) { d.route = t.value; return; }
         render();
@@ -188,7 +186,7 @@
         out.push('<div class="flag"><b>' + t + " 距離不足の疑い</b>：いま " + d.km + "㎞ → 実際は <b>" + (lo === hi ? lo : lo + "〜" + hi) + "㎞</b> の可能性。" +
           (rec.nuke || []).map(function (g) { return hhmm(g.t0) + "〜" + hhmm(g.t1) + "の記録なし"; }).join("、") + "。" + link + "</div>");
       } else if (mk === "元データ要確認") {
-        out.push('<div class="flag"><b>' + t + " 元データ要確認</b>：手段がはっきりしない区間があります（車として数えています）。バス・電車なら「電車」の㎞と運賃を入れてください。<br>" +
+        out.push('<div class="flag"><b>' + t + " 元データ要確認</b>：手段がはっきりしない区間があります（車として数えています）。バス・電車だった場合は、走行㎞を直して運賃を入れてください。<br>" +
           rec.aimai.map(function (a) {
             var mj = MODE_JA[String(a.mode || "").toLowerCase().replace(/[^a-z]/g, "")] || a.mode;
             return hhmm(a.start) + (a.end ? "〜" + hhmm(a.end) : "") + " " + a.km.toFixed(1) + "㎞（判定：" + esc(mj) + (a.prob != null ? "・" + Math.round(a.prob * 100) + "%" : "") + "）" +
